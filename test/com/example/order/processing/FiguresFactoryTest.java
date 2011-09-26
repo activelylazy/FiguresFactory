@@ -18,7 +18,9 @@ import com.example.order.CurrencyException;
 import com.example.order.OrderProcessingException;
 import com.example.order.model.Currency;
 import com.example.order.model.ExchangeRate;
+import com.example.order.model.FundOfFund;
 import com.example.order.model.HedgeFundAsset;
+import com.example.order.model.Position;
 import com.example.order.model.TradeOrderType;
 import com.example.order.service.FXService;
 import com.example.order.service.PositionFetcher;
@@ -33,26 +35,34 @@ public class FiguresFactoryTest {
     private final PriceFetcher priceFetcher = context.mock(PriceFetcher.class);
     private final PositionFetcher positionsFetcher = context.mock(PositionFetcher.class);
     private final FXService fxService = context.mock(FXService.class);
-    private final HedgeFundAsset asset = context.mock(HedgeFundAsset.class, "asset");
+    private final HedgeFundAsset gbpAsset = context.mock(HedgeFundAsset.class, "asset");
     private final HedgeFundAsset usdAsset = context.mock(HedgeFundAsset.class," usdAsset");
     private final Currency gbp = context.mock(Currency.class, "gbp");
     private final Currency usd = context.mock(Currency.class, "usd");
-    private Date effectiveDate;
+    private Date firstSeptember;
     
     @Before public void
     setup_prices_and_assets() throws ParseException, CurrencyException {
+    	firstSeptember = fmt.parse("01/09/2011");
         context.checking(new Expectations() {{
             // best price for the asset is 5 (currency depends on asset)
             allowing(priceFetcher).fetchBestPriceFor(with(any(HedgeFundAsset.class)), with(any(Date.class)), with(any(BigDecimal.class))); 
             	will(returnValue(new BigDecimal("5")));
-            allowing(asset).getCurrency(); will(returnValue(gbp));
+            	
+            allowing(gbpAsset).getCurrency(); will(returnValue(gbp));
             allowing(usdAsset).getCurrency(); will(returnValue(usd));
+            
             allowing(gbp).getSymbol(); will(returnValue("GBP"));
             allowing(usd).getSymbol(); will(returnValue("USD"));
+            
+            // GBP -> USD exchange rate is 1.5
             allowing(fxService).getExchangeRate(with(gbp), with(usd), with(any(Date.class)));
             	will(returnValue(new ExchangeRate(new BigDecimal("1.5"))));
+            	
+            // Position on 01/09 in GBP asset is 100 shares (@5 GBP per share)
+            allowing(positionsFetcher).getAssetPosition(with(gbpAsset), with(any(FundOfFund.class)), with(firstSeptember));
+            	will(returnValue(new Position(new BigDecimal("100"))));
         }});
-        effectiveDate = fmt.parse("01/09/2011");
     }
     
     @Test public void
@@ -61,11 +71,11 @@ public class FiguresFactoryTest {
         TradeOrder order = new TradeOrder();
         order.setAmount(new BigDecimal("100"));
         order.setCurrency(gbp);
-        order.setAsset(asset);
+        order.setAsset(gbpAsset);
         order.setType(TradeOrderType.SUBSCRIPTION);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, effectiveDate);
+        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -80,11 +90,11 @@ public class FiguresFactoryTest {
         TradeOrder order = new TradeOrder();
         order.setShares(new BigDecimal("20"));
         order.setCurrency(gbp);
-        order.setAsset(asset);
+        order.setAsset(gbpAsset);
         order.setType(TradeOrderType.SUBSCRIPTION);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, effectiveDate);
+        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -103,7 +113,7 @@ public class FiguresFactoryTest {
         order.setType(TradeOrderType.SUBSCRIPTION);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, effectiveDate);
+        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
         
         // GBP -> USD fx rate is 1.5 so 100 GBP order is 150 USD
         // Then we expect to get 30 shares @ 5 USD per share == 150 USD total
@@ -112,4 +122,26 @@ public class FiguresFactoryTest {
         assertThat(figures.getPrice().getCurrency().getSymbol(), is("USD"));
         assertThat(figures.getShares(), is(new BigDecimal("30")));
     }
+    
+    @Test public void
+    creates_figures_for_a_redemption_order_with_an_amount() throws OrderProcessingException {
+    	// Given an order to Sell 100 GBP of the asset
+        TradeOrder order = new TradeOrder();
+        order.setAmount(new BigDecimal("100"));
+        order.setCurrency(gbp);
+        order.setAsset(gbpAsset);
+        order.setType(TradeOrderType.REDEMPTION);
+        order.setTradeDate(firstSeptember);
+        
+        // When we create the figures
+        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        
+        // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
+        assertThat(figures.getAmount(), is(new BigDecimal("100")));
+        assertThat(figures.getPrice().getValue(), is(new BigDecimal("5")));
+        assertThat(figures.getPrice().getCurrency().getSymbol(), is("GBP"));
+        assertThat(figures.getShares(), is(new BigDecimal("20")));
+    }
+
+    
 }
