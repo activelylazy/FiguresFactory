@@ -154,6 +154,29 @@ public class FiguresFactoryTest {
         order.setTradeDate(firstSeptember);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        
+        // Then we expect an exception
     }
+    
+    @Test public void
+    creates_figures_for_a_redemption_order_with_a_percentage() throws OrderProcessingException {
+    	// Given an order to Sell 50% of the asset (we have 100 shares @ 5 GBP per share)
+        TradeOrder order = new TradeOrder();
+        order.setPercentage(new BigDecimal("50"));
+        order.setCurrency(gbp);
+        order.setAsset(gbpAsset);
+        order.setType(TradeOrderType.REDEMPTION);
+        order.setTradeDate(firstSeptember);
+        
+        // When we create the figures
+        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        
+        // Then we expect to get 50 shares @ 5 GBP per share == 500 GBP total
+        assertThat(figures.getAmount(), is(new BigDecimal("250")));
+        assertThat(figures.getPrice().getValue(), is(new BigDecimal("5")));
+        assertThat(figures.getPrice().getCurrency().getSymbol(), is("GBP"));
+        assertThat(figures.getShares(), is(new BigDecimal("50")));
+    }
+    
 }
