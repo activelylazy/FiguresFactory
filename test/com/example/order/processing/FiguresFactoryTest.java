@@ -143,5 +143,17 @@ public class FiguresFactoryTest {
         assertThat(figures.getShares(), is(new BigDecimal("20")));
     }
 
-    
+    @Test(expected=OrderProcessingException.class) public void
+    exception_thrown_when_creating_figures_for_redemption_order_greater_than_current_position() throws OrderProcessingException {
+    	// Given an order to Sell 2000 GBP of the asset
+        TradeOrder order = new TradeOrder();
+        order.setAmount(new BigDecimal("2000"));
+        order.setCurrency(gbp);
+        order.setAsset(gbpAsset);
+        order.setType(TradeOrderType.REDEMPTION);
+        order.setTradeDate(firstSeptember);
+        
+        // When we create the figures
+        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+    }
 }
