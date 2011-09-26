@@ -2,9 +2,9 @@
 # About
 
 This project represents a common pattern:
- * Hibernate model objects, all data but no behaviour
- * injected "service" dependencies that are more like function libraries
- * stateless helper classes that manipulate the data in the model using services
+* Hibernate model objects, all data but no behaviour
+* injected "service" dependencies that are more like function libraries
+* stateless helper classes that manipulate the data in the model using services
 
 # Why is this bad?
 
