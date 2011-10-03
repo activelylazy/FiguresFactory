@@ -32,15 +32,24 @@ public class FiguresFactoryTest {
     
     private Mockery context = new Mockery() {{ setImposteriser(ClassImposteriser.INSTANCE); }};
 
+    private static final String GBP = "gbp";
+    private static final String USD = "usd";
+    
     private final PriceFetcher priceFetcher = context.mock(PriceFetcher.class);
     private final PositionFetcher positionsFetcher = context.mock(PositionFetcher.class);
     private final FXService fxService = context.mock(FXService.class);
     private final FundOfFund fohf = context.mock(FundOfFund.class);
     private final HedgeFundAsset gbpAsset = context.mock(HedgeFundAsset.class, "asset");
     private final HedgeFundAsset usdAsset = context.mock(HedgeFundAsset.class," usdAsset");
-    private final Currency gbp = context.mock(Currency.class, "gbp");
-    private final Currency usd = context.mock(Currency.class, "usd");
+    private final CurrencyCache currencyCache = context.mock(CurrencyCache.class);
+    private final Currency gbp = context.mock(Currency.class, GBP);
+    private final Currency usd = context.mock(Currency.class, USD);
     private Date firstSeptember;
+    private AssetTradeOrder.Factory assetTradeOrderFactory = new AssetTradeOrder.Factory() {
+		@Override public AssetTradeOrder create(TradeOrderRecord record, HedgeFundAsset asset) {
+			return new AssetTradeOrder(currencyCache, priceFetcher, positionsFetcher, fxService, record, asset);
+		}
+	};
     
     @Before public void
     setup_prices_and_assets() throws ParseException, CurrencyException {
@@ -56,6 +65,9 @@ public class FiguresFactoryTest {
             	
             allowing(gbpAsset).getCurrency(); will(returnValue(gbp));
             allowing(usdAsset).getCurrency(); will(returnValue(usd));
+
+            allowing(currencyCache).lookupCurrency(GBP); will(returnValue(gbp));
+            allowing(currencyCache).lookupCurrency(USD); will(returnValue(usd));
             
             allowing(gbp).getSymbol(); will(returnValue("GBP"));
             allowing(usd).getSymbol(); will(returnValue("USD"));
@@ -73,15 +85,15 @@ public class FiguresFactoryTest {
     @Test public void
     creates_figures_for_a_subscription_order_with_an_amount() throws OrderProcessingException {
     	// Given an order to Buy 100 GBP of the asset
-        TradeOrder order = new TradeOrder();
-        order.setAmount(new BigDecimal("100"));
-        order.setCurrency(gbp);
-        order.setAsset(gbpAsset);
-        order.setType(TradeOrderType.SUBSCRIPTION);
-        order.setFohf(fohf);
+        AssetTradeOrder order = assetTradeOrderFactory.create(
+        		new TradeOrderRecord(TradeOrderRecord.Arguments.AMOUNT.of(new BigDecimal("100")),
+        							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
+        							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.SUBSCRIPTION),
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
+        		gbpAsset);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        Figures figures = order.buildFrom(firstSeptember, fohf);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -93,15 +105,15 @@ public class FiguresFactoryTest {
     @Test public void
     creates_figures_for_a_subscription_order_with_a_number_of_shares() throws OrderProcessingException {
     	// Given an order to Buy 20 shares of the asset
-        TradeOrder order = new TradeOrder();
-        order.setShares(new BigDecimal("20"));
-        order.setCurrency(gbp);
-        order.setAsset(gbpAsset);
-        order.setType(TradeOrderType.SUBSCRIPTION);
-        order.setFohf(fohf);
+        AssetTradeOrder order = assetTradeOrderFactory.create(
+        		new TradeOrderRecord(TradeOrderRecord.Arguments.SHARES.of(new BigDecimal("20")),
+        							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
+        							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.SUBSCRIPTION),
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
+        		gbpAsset);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        Figures figures = order.buildFrom(firstSeptember, fohf);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -113,15 +125,15 @@ public class FiguresFactoryTest {
     @Test public void
     creates_figures_for_a_subscription_order_with_an_amount_in_a_different_currency() throws OrderProcessingException {
     	// Given an order to Buy 100 GBP of the USD asset
-        TradeOrder order = new TradeOrder();
-        order.setAmount(new BigDecimal("100"));
-        order.setCurrency(gbp);
-        order.setAsset(usdAsset);
-        order.setType(TradeOrderType.SUBSCRIPTION);
-        order.setFohf(fohf);
-        
+        AssetTradeOrder order = assetTradeOrderFactory.create(
+        		new TradeOrderRecord(TradeOrderRecord.Arguments.AMOUNT.of(new BigDecimal("100")),
+        							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
+        							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.SUBSCRIPTION),
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
+        		usdAsset);
+
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        Figures figures = order.buildFrom(firstSeptember, fohf);
         
         // GBP -> USD fx rate is 1.5 so 100 GBP order is 150 USD
         // Then we expect to get 75 shares @ 2 USD per share == 150 USD total
@@ -134,16 +146,15 @@ public class FiguresFactoryTest {
     @Test public void
     creates_figures_for_a_redemption_order_with_an_amount() throws OrderProcessingException {
     	// Given an order to Sell 100 GBP of the asset
-        TradeOrder order = new TradeOrder();
-        order.setAmount(new BigDecimal("100"));
-        order.setCurrency(gbp);
-        order.setAsset(gbpAsset);
-        order.setType(TradeOrderType.REDEMPTION);
-        order.setTradeDate(firstSeptember);
-        order.setFohf(fohf);
+        AssetTradeOrder order = assetTradeOrderFactory.create(
+        		new TradeOrderRecord(TradeOrderRecord.Arguments.SHARES.of(new BigDecimal("20")),
+        							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
+        							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.REDEMPTION),
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
+        		gbpAsset);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        Figures figures = order.buildFrom(firstSeptember, fohf);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -155,16 +166,15 @@ public class FiguresFactoryTest {
     @Test(expected=OrderProcessingException.class) public void
     exception_thrown_when_creating_figures_for_redemption_order_greater_than_current_position() throws OrderProcessingException {
     	// Given an order to Sell 2000 GBP of the asset
-        TradeOrder order = new TradeOrder();
-        order.setAmount(new BigDecimal("2000"));
-        order.setCurrency(gbp);
-        order.setAsset(gbpAsset);
-        order.setType(TradeOrderType.REDEMPTION);
-        order.setTradeDate(firstSeptember);
-        order.setFohf(fohf);
+        AssetTradeOrder order = assetTradeOrderFactory.create(
+        		new TradeOrderRecord(TradeOrderRecord.Arguments.AMOUNT.of(new BigDecimal("2000")),
+        							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
+        							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.REDEMPTION),
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
+        		gbpAsset);
         
         // When we create the figures
-        new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        order.buildFrom(firstSeptember, fohf);
         
         // Then we expect an exception
     }
@@ -172,16 +182,15 @@ public class FiguresFactoryTest {
     @Test public void
     creates_figures_for_a_redemption_order_with_a_percentage() throws OrderProcessingException {
     	// Given an order to Sell 50% of the asset (we have 100 shares @ 5 GBP per share)
-        TradeOrder order = new TradeOrder();
-        order.setPercentage(new BigDecimal("50"));
-        order.setCurrency(gbp);
-        order.setAsset(gbpAsset);
-        order.setType(TradeOrderType.REDEMPTION);
-        order.setTradeDate(firstSeptember);
-        order.setFohf(fohf);
+        AssetTradeOrder order = assetTradeOrderFactory.create(
+        		new TradeOrderRecord(TradeOrderRecord.Arguments.PERCENTAGE.of(new BigDecimal("50")),
+        							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
+        							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.REDEMPTION),
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
+        		gbpAsset);
         
         // When we create the figures
-        Figures figures = new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
+        Figures figures = order.buildFrom(firstSeptember, fohf);
         
         // Then we expect to get 50 shares @ 5 GBP per share == 500 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("250")));
