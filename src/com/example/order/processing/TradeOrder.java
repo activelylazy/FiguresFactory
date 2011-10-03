@@ -87,8 +87,6 @@ public class TradeOrder {
     public TradeOrderType getType() { return type; }
 
     public Figures buildFrom(Date effectiveDate) throws OrderProcessingException {
-    	assert fohf.getId().equals(this.getFohf());
-    	
         BigDecimal bestPrice = bestPriceFor(this.getAsset(), this.getTradeDate());
         
         return this.getType() == TradeOrderType.REDEMPTION 
