@@ -46,8 +46,8 @@ public class FiguresFactoryTest {
     private final Currency usd = context.mock(Currency.class, USD);
     private Date firstSeptember;
     private TradeOrder.Factory tradeOrderFactory = new TradeOrder.Factory() {
-		@Override public TradeOrder create(TradeOrderRecord record, HedgeFundAsset asset) {
-			return new TradeOrder(currencyCache, priceFetcher, positionsFetcher, fxService, record, asset);
+		@Override public TradeOrder create(TradeOrderRecord record) {
+			return new TradeOrder(currencyCache, priceFetcher, positionsFetcher, fxService, record);
 		}
 	};
     
@@ -89,11 +89,12 @@ public class FiguresFactoryTest {
         		new TradeOrderRecord(TradeOrderRecord.Arguments.AMOUNT.of(new BigDecimal("100")),
         							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
         							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.SUBSCRIPTION),
-        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
-        		gbpAsset);
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember),
+        							 TradeOrderRecord.Arguments.ASSET.of(gbpAsset),
+        							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember, fohf);
+        Figures figures = order.buildFrom(firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -109,11 +110,12 @@ public class FiguresFactoryTest {
         		new TradeOrderRecord(TradeOrderRecord.Arguments.SHARES.of(new BigDecimal("20")),
         							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
         							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.SUBSCRIPTION),
-        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
-        		gbpAsset);
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember),
+        							 TradeOrderRecord.Arguments.ASSET.of(gbpAsset),
+        							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember, fohf);
+        Figures figures = order.buildFrom(firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -129,11 +131,12 @@ public class FiguresFactoryTest {
         		new TradeOrderRecord(TradeOrderRecord.Arguments.AMOUNT.of(new BigDecimal("100")),
         							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
         							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.SUBSCRIPTION),
-        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
-        		usdAsset);
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember),
+        							 TradeOrderRecord.Arguments.ASSET.of(usdAsset),
+        							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
 
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember, fohf);
+        Figures figures = order.buildFrom(firstSeptember);
         
         // GBP -> USD fx rate is 1.5 so 100 GBP order is 150 USD
         // Then we expect to get 75 shares @ 2 USD per share == 150 USD total
@@ -150,11 +153,12 @@ public class FiguresFactoryTest {
         		new TradeOrderRecord(TradeOrderRecord.Arguments.SHARES.of(new BigDecimal("20")),
         							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
         							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.REDEMPTION),
-        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
-        		gbpAsset);
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember),
+        							 TradeOrderRecord.Arguments.ASSET.of(gbpAsset),
+        							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember, fohf);
+        Figures figures = order.buildFrom(firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -170,11 +174,12 @@ public class FiguresFactoryTest {
         		new TradeOrderRecord(TradeOrderRecord.Arguments.AMOUNT.of(new BigDecimal("2000")),
         							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
         							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.REDEMPTION),
-        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
-        		gbpAsset);
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember),
+        							 TradeOrderRecord.Arguments.ASSET.of(gbpAsset),
+        							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        order.buildFrom(firstSeptember, fohf);
+        order.buildFrom(firstSeptember);
         
         // Then we expect an exception
     }
@@ -186,11 +191,12 @@ public class FiguresFactoryTest {
         		new TradeOrderRecord(TradeOrderRecord.Arguments.PERCENTAGE.of(new BigDecimal("50")),
         							 TradeOrderRecord.Arguments.CURRENCY_ID.of(GBP),
         							 TradeOrderRecord.Arguments.TYPE.of(TradeOrderType.REDEMPTION),
-        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember)),
-        		gbpAsset);
+        							 TradeOrderRecord.Arguments.TRADE_DATE.of(firstSeptember),
+        							 TradeOrderRecord.Arguments.ASSET.of(gbpAsset),
+        							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember, fohf);
+        Figures figures = order.buildFrom(firstSeptember);
         
         // Then we expect to get 50 shares @ 5 GBP per share == 500 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("250")));

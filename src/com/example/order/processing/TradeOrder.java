@@ -22,8 +22,9 @@ public class TradeOrder {
     
     private final String id;
     private final String companyId;
-    private final String fohfId;
+    private final FundOfFund fohf;
     private final String currencyId;
+    private final HedgeFundAsset asset;
     private final String status;
     private final BigDecimal amount;
     private final BigDecimal shares;
@@ -32,7 +33,6 @@ public class TradeOrder {
     private final Date tradeDate;
     private final Date valueDate;
     private final TradeOrderType type;
-    private final HedgeFundAsset asset;
     
 	private final CurrencyCache currencyCache;
 	
@@ -41,7 +41,7 @@ public class TradeOrder {
     private FXService fxService;
 	
     public static interface Factory {
-    	TradeOrder create(TradeOrderRecord record, HedgeFundAsset asset);
+    	TradeOrder create(TradeOrderRecord record);
     }
     
     @Inject
@@ -49,16 +49,15 @@ public class TradeOrder {
 					  PriceFetcher bestPriceFetcher,
 					  PositionFetcher hedgeFundAssetPositionsFetcher,
 					  FXService fxService,
-					  @Assisted TradeOrderRecord record,
-					  @Assisted HedgeFundAsset asset) {
+					  @Assisted TradeOrderRecord record) {
 		this.bestPriceFetcher = bestPriceFetcher;
 		this.hedgeFundAssetPositionsFetcher = hedgeFundAssetPositionsFetcher;
 		this.fxService = fxService;
-		this.asset = asset;
     	this.currencyCache = currencyCache;
 		this.id = record.id;
     	this.companyId = record.companyId;
-    	this.fohfId = record.fohfId;
+    	this.fohf = record.fohf;
+    	this.asset = record.asset;
     	this.currencyId = record.currencyId;
     	this.status = record.status;
     	this.amount = record.amount;
@@ -72,7 +71,8 @@ public class TradeOrder {
     
     public String getId() { return id; }
     public String getCompanyId() { return companyId; }
-    public String getFohfId() { return fohfId; } 
+    public FundOfFund getFohf() { return fohf; } 
+    public HedgeFundAsset getAsset() { return this.asset; }
     public String getCurrencyId() { return currencyId; }
     public Currency getCurrency() {
     	return this.currencyCache.lookupCurrency(this.currencyId);
@@ -85,10 +85,9 @@ public class TradeOrder {
     public Date getTradeDate() { return tradeDate; }
     public Date getValueDate() { return valueDate; }
     public TradeOrderType getType() { return type; }
-	public HedgeFundAsset getAsset() { return this.asset; }
 
-    public Figures buildFrom(Date effectiveDate, FundOfFund fohf) throws OrderProcessingException {
-    	assert fohf.getId().equals(this.getFohfId());
+    public Figures buildFrom(Date effectiveDate) throws OrderProcessingException {
+    	assert fohf.getId().equals(this.getFohf());
     	
         BigDecimal bestPrice = bestPriceFor(this.getAsset(), this.getTradeDate());
         
