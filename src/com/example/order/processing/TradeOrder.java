@@ -35,9 +35,9 @@ public class TradeOrder {
     private final TradeOrderType type;
     
 	private final CurrencyCache currencyCache;
-    private PriceFetcher bestPriceFetcher;
-    private PositionFetcher hedgeFundAssetPositionsFetcher;
-    private FXService fxService;
+    private final PriceFetcher bestPriceFetcher;
+    private final PositionFetcher hedgeFundAssetPositionsFetcher;
+    private final FXService fxService;
 	
     public static interface Factory {
     	TradeOrder create(TradeOrderRecord record);
