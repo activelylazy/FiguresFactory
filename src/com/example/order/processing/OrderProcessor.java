@@ -9,18 +9,15 @@ import com.google.inject.Inject;
 
 public class OrderProcessor {
 
-    private final FiguresFactory figuresFactory;
     private final TradeFactory tradeFactory;
     
     @Inject
-    public OrderProcessor(FiguresFactory figuresFactory,
-                          TradeFactory tradeFactory) {
-        this.figuresFactory = figuresFactory;
+    public OrderProcessor(TradeFactory tradeFactory) {
         this.tradeFactory = tradeFactory;
     }
     
     public void processOrder(TradeOrder order) throws OrderProcessingException {
-        Figures figures = figuresFactory.buildFrom(order, calculateEffectiveDateFor(order));
+        Figures figures = order.createFigures(calculateEffectiveDateFor(order));
         
         Trade trade = tradeFactory.createTrade(figures, order.getAsset());
         trade.save();
