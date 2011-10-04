@@ -69,33 +69,23 @@ public class TradeOrder {
     	this.type = record.type;
     }
     
-    public String getId() { return id; }
-    public String getCompanyId() { return companyId; }
-    public FundOfFund getFohf() { return fohf; } 
-    public HedgeFundAsset getAsset() { return this.asset; }
-    public String getCurrencyId() { return currencyId; }
-    public Currency getCurrency() {
-    	return this.currencyCache.lookupCurrency(this.currencyId);
-    }
-    public String getStatus() { return status; }
-    public BigDecimal getAmount() { return amount; }
-    public BigDecimal getShares() { return shares; }
-    public BigDecimal getPercentage() { return percentage; }
-    public boolean isWholeHedgeFund() { return isWholeHedgeFund; }
-    public Date getTradeDate() { return tradeDate; }
-    public Date getValueDate() { return valueDate; }
-    public TradeOrderType getType() { return type; }
-
     public Figures buildFrom(Date effectiveDate) throws OrderProcessingException {
-        BigDecimal bestPrice = bestPriceFor(this.getAsset(), this.getTradeDate());
+        BigDecimal bestPrice = bestPriceFor(this.asset, this.tradeDate);
         
-        return this.getType() == TradeOrderType.REDEMPTION 
+        return this.type == TradeOrderType.REDEMPTION 
             ? figuresFromPosition(fohf,
-                                  lookupPosition(this.getAsset(), fohf, this.getTradeDate()),
-                                  lookupPosition(this.getAsset(), fohf, effectiveDate), bestPrice) 
+                                  lookupPosition(this.asset, fohf, this.tradeDate),
+                                  lookupPosition(this.asset, fohf, effectiveDate), bestPrice) 
             : getFigures(fohf, bestPrice, null);
     }
     
+    @Deprecated
+    public HedgeFundAsset getAsset() { return this.asset; }
+    
+    private Currency getCurrency() {
+    	return this.currencyCache.lookupCurrency(this.currencyId);
+    }
+
     private BigDecimal bestPriceFor(HedgeFundAsset asset, Date tradeDate) {
         BigDecimal fallbackbestPrice = BigDecimal.ONE;
         BigDecimal bestPrice = bestPriceFetcher.fetchBestPriceFor(asset, tradeDate, fallbackbestPrice);
@@ -103,11 +93,11 @@ public class TradeOrder {
     }
     
     private Figures getFigures(FundOfFund fohf, BigDecimal assetPrice, BigDecimal totalSharesSubscribed) throws OrderProcessingException {
-        Currency assetCurrency = this.getAsset().getCurrency();
-        BigDecimal amount = this.getAmount();
+        Currency assetCurrency = this.asset.getCurrency();
+        BigDecimal amount = this.amount;
         
-        if (shouldConvertPaymentCurrency(this.getAsset())) {
-            ExchangeRate rate = getRateFromPaymentCurrencyToAssetCurrency(fohf, this.getTradeDate(), this.getCurrency(), assetCurrency);
+        if (shouldConvertPaymentCurrency(this.asset)) {
+            ExchangeRate rate = getRateFromPaymentCurrencyToAssetCurrency(fohf, this.tradeDate, this.getCurrency(), assetCurrency);
             if (null != amount) {
                 amount = rate.applyCurrencyConversion(amount);
             }
@@ -117,11 +107,11 @@ public class TradeOrder {
         if (amount != null) {
             return Figures.amountAndPrice(amount, price);
         }
-        if (this.getShares() != null) {
-            return Figures.sharesAndPrice(this.getShares(), price);
+        if (this.shares != null) {
+            return Figures.sharesAndPrice(this.shares, price);
         }
-        if (this.getPercentage() != null && totalSharesSubscribed != null) {
-            return Figures.sharesAndPrice(totalSharesSubscribed.multiply(this.getPercentage()).divide(BigDecimal.valueOf(100)), price);
+        if (this.percentage != null && totalSharesSubscribed != null) {
+            return Figures.sharesAndPrice(totalSharesSubscribed.multiply(this.percentage).divide(BigDecimal.valueOf(100)), price);
         }
         throw new OrderProcessingException("No figures created");
     }
