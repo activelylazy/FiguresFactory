@@ -166,7 +166,7 @@ public class FiguresFactoryTest {
         // When we create the figures
         new FiguresFactory(priceFetcher, positionsFetcher, fxService).buildFrom(order, firstSeptember);
         
-        // Then we expect an exception
+        // Then we expect an exception, because this is more than we own
     }
     
     @Test public void
