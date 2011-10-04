@@ -94,7 +94,7 @@ public class FiguresFactoryTest {
         							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember);
+        Figures figures = order.createFigures(firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -115,7 +115,7 @@ public class FiguresFactoryTest {
         							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember);
+        Figures figures = order.createFigures(firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -136,7 +136,7 @@ public class FiguresFactoryTest {
         							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
 
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember);
+        Figures figures = order.createFigures(firstSeptember);
         
         // GBP -> USD fx rate is 1.5 so 100 GBP order is 150 USD
         // Then we expect to get 75 shares @ 2 USD per share == 150 USD total
@@ -158,7 +158,7 @@ public class FiguresFactoryTest {
         							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember);
+        Figures figures = order.createFigures(firstSeptember);
         
         // Then we expect to get 20 shares @ 5 GBP per share == 100 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("100")));
@@ -179,7 +179,7 @@ public class FiguresFactoryTest {
         							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        order.buildFrom(firstSeptember);
+        order.createFigures(firstSeptember);
         
         // Then we expect an exception
     }
@@ -196,7 +196,7 @@ public class FiguresFactoryTest {
         							 TradeOrderRecord.Arguments.FOHF.of(fohf)));
         
         // When we create the figures
-        Figures figures = order.buildFrom(firstSeptember);
+        Figures figures = order.createFigures(firstSeptember);
         
         // Then we expect to get 50 shares @ 5 GBP per share == 500 GBP total
         assertThat(figures.getAmount(), is(new BigDecimal("250")));

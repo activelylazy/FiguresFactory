@@ -17,7 +17,7 @@ public class OrderProcessor {
     }
     
     public void processOrder(TradeOrder order) throws OrderProcessingException {
-        Figures figures = order.buildFrom(calculateEffectiveDateFor(order));
+        Figures figures = order.createFigures(calculateEffectiveDateFor(order));
         
         Trade trade = tradeFactory.createTrade(figures, order.getAsset());
         trade.save();

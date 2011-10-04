@@ -35,7 +35,6 @@ public class TradeOrder {
     private final TradeOrderType type;
     
 	private final CurrencyCache currencyCache;
-	
     private PriceFetcher bestPriceFetcher;
     private PositionFetcher hedgeFundAssetPositionsFetcher;
     private FXService fxService;
@@ -69,7 +68,7 @@ public class TradeOrder {
     	this.type = record.type;
     }
     
-    public Figures buildFrom(Date effectiveDate) throws OrderProcessingException {
+    public Figures createFigures(Date effectiveDate) throws OrderProcessingException {
         BigDecimal bestPrice = bestPriceFor(this.asset, this.tradeDate);
         
         return this.type == TradeOrderType.REDEMPTION 
